@@ -1,4 +1,3 @@
- 253396fff53d5d0c9298f28ad565096a 
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
@@ -26,4 +25,5 @@ app.post('/add', (req,res)=>{
     res.json({coins: db[userId]});
 });
 
-app.listen(3000, ()=>console.log('Server running on port 3000')); 
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running"));
