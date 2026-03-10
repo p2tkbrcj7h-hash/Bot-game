@@ -6,24 +6,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Загружаем базу монет
 let db = {};
-try {
-    db = JSON.parse(fs.readFileSync('db.json','utf-8'));
-} catch(e){}
+try { db = JSON.parse(fs.readFileSync('db.json', 'utf-8')); } 
+catch(e){ db = {}; }
 
-app.get('/coins', (req,res)=>{
-    const userId = req.query.userId;
-    res.json({coins: db[userId] || 0});
+function saveDB() {
+    fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
+}
+
+// Регистрация
+app.post('/register', (req, res) => {
+    const { login, password } = req.body;
+    if(!login || !password) return res.json({ error: "Введите логин и пароль" });
+    if(db[login]) return res.json({ error: "Пользователь уже существует" });
+    db[login] = { password, coins: 0 };
+    saveDB();
+    res.json({ coins: 0 });
 });
 
-app.post('/add', (req,res)=>{
-    const {userId, amount} = req.body;
-    db[userId] = (db[userId] || 0) + (amount || 0);
-    if(db[userId] < 0) db[userId] = 0;
-    fs.writeFileSync('db.json', JSON.stringify(db));
-    res.json({coins: db[userId]});
+// Вход
+app.post('/login', (req, res) => {
+    const { login, password } = req.body;
+    if(!db[login] || db[login].password !== password) return res.json({ error: "Неверный логин или пароль" });
+    res.json({ coins: db[login].coins });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running"));
+// Добавление монет
+app.post('/add', (req, res) => {
+    const { login, amount } = req.body;
+    if(!login || !db[login]) return res.json({ error: "Сначала войдите" });
+    db[login].coins += amount || 0;
+    saveDB();
+    res.json({ coins: db[login].coins });
+});
+
+// Получение монет
+app.get('/coins', (req, res) => {
+    const { login } = req.query;
+    if(!login || !db[login]) return res.json({ coins: 0 });
+    res.json({ coins: db[login].coins });
+});
+
+app.listen(process.env.PORT || 3000, () => console.log("Server running"));
